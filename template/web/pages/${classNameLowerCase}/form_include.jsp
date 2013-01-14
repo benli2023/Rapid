@@ -21,7 +21,7 @@
 	<#if column.isDateTimeColumn>
 		<input value="<@jspEl classNameLower+"."+column.columnNameLower+"String"/>" onclick="WdatePicker({dateFmt:'<%=${className}.FORMAT_${column.constantName}%>'})" id="${column.columnNameLower}String" name="${column.columnNameLower}String"  maxlength="0" class="${column.validateString}" />
 	<#else>
-		<form:input path="${classNameLower}.${column.columnNameLower}" id="${column.columnNameLower}" cssClass="${column.validateString}" maxlength="${column.size}" />
+		<form:input path="${column.columnNameLower}" id="${column.columnNameLower}" cssClass="${column.validateString}" maxlength="${column.size}" />
 	</#if>
 		<font color='red'><form:errors path="${column.columnNameLower}"/></font>
 		</td>
@@ -29,5 +29,3 @@
 	
 	</#if>
 </#list>		
-
-

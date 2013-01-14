@@ -1,25 +1,25 @@
 <#include "/macro.include"/>
 <#include "/custom.include"/>  
 <#assign className = table.className>   
-<#assign classNameLower = className?uncap_first> 
+<#assign classNameFirstLower = className?uncap_first> 
+<#assign classNameLowerCase = className?lower_case> 
 <%@ page contentType="text/html;charset=UTF-8" %>
 <%@ include file="/commons/taglibs.jsp" %>
 
-
 <rapid:override name="head">
-	<title><%=${className}.TABLE_ALIAS%>编辑</title>
+	<title><%=${className}.TABLE_ALIAS%>新增</title>
 </rapid:override>
 
 <rapid:override name="content">
-	<form action="<@jspEl 'ctx'/>${actionBasePath}/update.do" method="post">
+	<form:form method="post" action="<@jspEl "ctx"/>/${classNameLowerCase}" modelAttribute="${classNameFirstLower}" >
 		<input id="submitButton" name="submitButton" type="submit" value="提交" />
-		<input type="button" value="返回列表" onclick="window.location='<@jspEl 'ctx'/>${actionBasePath}/list.do'"/>
+		<input type="button" value="返回列表" onclick="window.location='<@jspEl "ctx"/>/${classNameLowerCase}'"/>
 		<input type="button" value="后退" onclick="history.back();"/>
 		
 		<table class="formTable">
 		<%@ include file="form_include.jsp" %>
 		</table>
-	</form>
+	</form:form>
 	
 	<script>
 		

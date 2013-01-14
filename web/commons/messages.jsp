@@ -13,5 +13,3 @@
 		${flash.error}<br/>
 	</div> 
 </c:if>
-
-

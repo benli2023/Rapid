@@ -1,139 +1,144 @@
 <#include "/custom.include">
 <#include "/java_copyright.include">
 <#assign className = table.className>   
-<#assign classNameLower = className?uncap_first>   
+<#assign classNameFirstLower = className?uncap_first>   
+<#assign classNameLowerCase = className?lower_case>   
+<#assign pkJavaType = table.idColumn.javaType>   
+
 package ${basepackage}.controller;
+
+import java.util.Map;
+
+import java.text.SimpleDateFormat;
+import java.util.Date;
+
+import javacommon.base.BaseRestSpringController;
 
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
+import javax.validation.Valid;
 
-import cn.org.rapid_framework.web.scope.Flash;
+import org.springframework.beans.propertyeditors.CustomDateEditor;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.ModelMap;
+import org.springframework.validation.BindingResult;
+import org.springframework.validation.Validator;
+import org.springframework.web.bind.WebDataBinder;
+import org.springframework.web.bind.annotation.InitBinder;
 import org.springframework.web.bind.annotation.ModelAttribute;
-import org.springframework.web.servlet.ModelAndView;
-import org.springframework.web.servlet.mvc.multiaction.MultiActionController;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestMethod;
+import org.springframework.web.bind.annotation.RequestParam;
 
-import cn.org.rapid_framework.beanutils.BeanUtils;
+import cn.org.rapid_framework.page.Page;
+import cn.org.rapid_framework.web.scope.Flash;
 
 <#include "/java_imports.include">
-
 @Controller
-public class ${className}Controller extends BaseSpringController{
+@RequestMapping("/${classNameLowerCase}")
+public class ${className}Controller extends BaseRestSpringController<${className},${pkJavaType}>{
 	//默认多列排序,example: username desc,createTime asc
 	protected static final String DEFAULT_SORT_COLUMNS = null; 
 	
-	private ${className}Manager ${classNameLower}Manager;
+	private ${className}Manager ${classNameFirstLower}Manager;
 	
-	private final String LIST_ACTION = "redirect:${actionBasePath}/list.do";
-	
-	public ${className}Controller() {
-	}
+	private final String LIST_ACTION = "redirect:/${classNameLowerCase}";
 	
 	/** 
 	 * 增加setXXXX()方法,spring就可以通过autowire自动设置对象属性,注意大小写
 	 **/
 	public void set${className}Manager(${className}Manager manager) {
-		this.${classNameLower}Manager = manager;
+		this.${classNameFirstLower}Manager = manager;
 	}
-
+	
+	/** binder用于bean属性的设置 */
+	@InitBinder  
+	public void initBinder(WebDataBinder binder) {  
+	        binder.registerCustomEditor(Date.class, new CustomDateEditor(new SimpleDateFormat("yyyy-MM-dd"), true));  
+	}
+	   
 	/**
-	 * 增加了@ModelAttribute的方法可以在本controller的方法调用前执行,可以存放一些共享变量,如枚举值
+	 * 增加了@ModelAttribute的方法可以在本controller方法调用前执行,可以存放一些共享变量,如枚举值,或是一些初始化操作
 	 */
 	@ModelAttribute
 	public void init(ModelMap model) {
 		model.put("now", new java.sql.Timestamp(System.currentTimeMillis()));
 	}
 	
-	/** 
-	 * 执行搜索 
-	 **/
-	public ModelAndView list(HttpServletRequest request,HttpServletResponse response,${className}Query query) {
-		Page page = this.${classNameLower}Manager.findPage(query);
+	/** 列表 */
+	@RequestMapping
+	public String index(ModelMap model,${className}Query query,HttpServletRequest request,HttpServletResponse response) {
+		Page page = this.${classNameFirstLower}Manager.findPage(query);
 		
-		ModelAndView result = new ModelAndView("/${className}/list");
-		result.addAllObjects(toModelMap(page, query));
-		return result;
+		model.addAllAttributes(toModelMap(page, query));
+		return "/${classNameLowerCase}/index";
 	}
 	
-	/** 
-	 * 查看对象
-	 **/
-	public ModelAndView show(HttpServletRequest request,HttpServletResponse response) throws Exception {
-		<@generateIdParameter/>
-		${className} ${classNameLower} = (${className})${classNameLower}Manager.getById(id);
-		return new ModelAndView("/${className}/show","${classNameLower}",${classNameLower});
+	/** 显示 */
+	@RequestMapping(value="/{id}")
+	public String show(ModelMap model,@PathVariable ${pkJavaType} id) throws Exception {
+		${className} ${classNameFirstLower} = (${className})${classNameFirstLower}Manager.getById(id);
+		model.addAttribute("${classNameFirstLower}",${classNameFirstLower});
+		return "/${classNameLowerCase}/show";
+	}
+
+	/** 进入新增 */
+	@RequestMapping(value="/new")
+	public String _new(ModelMap model,${className} ${classNameFirstLower},HttpServletRequest request,HttpServletResponse response) throws Exception {
+		model.addAttribute("${classNameFirstLower}",${classNameFirstLower});
+		return "/${classNameLowerCase}/new";
 	}
 	
-	/** 
-	 * 进入新增页面
-	 **/
-	public ModelAndView create(HttpServletRequest request,HttpServletResponse response,${className} ${classNameLower}) throws Exception {
-		return new ModelAndView("/${className}/create","${classNameLower}",${classNameLower});
-	}
-	
-	/** 
-	 * 保存新增对象
-	 **/
-	public ModelAndView save(HttpServletRequest request,HttpServletResponse response,${className} ${classNameLower}) throws Exception {
-		${classNameLower}Manager.save(${classNameLower});
+	/** 保存新增,@Valid标注spirng在绑定对象时自动为我们验证对象属性并存放errors在BindingResult  */
+	@RequestMapping(method=RequestMethod.POST)
+	public String create(ModelMap model,@Valid ${className} ${classNameFirstLower},BindingResult errors,HttpServletRequest request,HttpServletResponse response) throws Exception {
+		if(errors.hasErrors()) {
+			return  "/${classNameLowerCase}/new";
+		}
+		
+		${classNameFirstLower}Manager.save(${classNameFirstLower});
 		Flash.current().success(CREATED_SUCCESS); //存放在Flash中的数据,在下一次http请求中仍然可以读取数据,error()用于显示错误消息
-		return new ModelAndView(LIST_ACTION);
+		return LIST_ACTION;
 	}
 	
-	/**
-	 * 进入更新页面
-	 **/
-	public ModelAndView edit(HttpServletRequest request,HttpServletResponse response) throws Exception {
-		<@generateIdParameter/>
-		${className} ${classNameLower} = (${className})${classNameLower}Manager.getById(id);
-		return new ModelAndView("/${className}/edit","${classNameLower}",${classNameLower});
+	/** 编辑 */
+	@RequestMapping(value="/{id}/edit")
+	public String edit(ModelMap model,@PathVariable ${pkJavaType} id) throws Exception {
+		${className} ${classNameFirstLower} = (${className})${classNameFirstLower}Manager.getById(id);
+		model.addAttribute("${classNameFirstLower}",${classNameFirstLower});
+		return "/${classNameLowerCase}/edit";
 	}
 	
-	/**
-	 * 保存更新对象
-	 **/
-	public ModelAndView update(HttpServletRequest request,HttpServletResponse response) throws Exception {
-		<@generateIdParameter/>
+	/** 保存更新,@Valid标注spirng在绑定对象时自动为我们验证对象属性并存放errors在BindingResult  */
+	@RequestMapping(value="/{id}",method=RequestMethod.PUT)
+	public String update(ModelMap model,@PathVariable ${pkJavaType} id,@Valid ${className} ${classNameFirstLower},BindingResult errors,HttpServletRequest request,HttpServletResponse response) throws Exception {
+		if(errors.hasErrors()) {
+			return "/${classNameLowerCase}/edit";
+		}
 		
-		${className} ${classNameLower} = (${className})${classNameLower}Manager.getById(id);
-		bind(request,${classNameLower});
-		${classNameLower}Manager.update(${classNameLower});
+		${classNameFirstLower}Manager.update(${classNameFirstLower});
 		Flash.current().success(UPDATE_SUCCESS);
-		return new ModelAndView(LIST_ACTION);
+		return LIST_ACTION;
 	}
 	
-	/**
-	 *删除对象
-	 **/
-	public ModelAndView delete(HttpServletRequest request,HttpServletResponse response) {
-		String[] items = request.getParameterValues("items");
+	/** 删除 */
+	@RequestMapping(value="/{id}",method=RequestMethod.DELETE)
+	public String delete(ModelMap model,@PathVariable ${pkJavaType} id) {
+		${classNameFirstLower}Manager.removeById(id);
+		Flash.current().success(DELETE_SUCCESS);
+		return LIST_ACTION;
+	}
+
+	/** 批量删除 */
+	@RequestMapping(method=RequestMethod.DELETE)
+	public String batchDelete(ModelMap model,@RequestParam("items") ${pkJavaType}[] items) {
 		for(int i = 0; i < items.length; i++) {
-			Hashtable params = HttpUtils.parseQueryString(items[i]);
-			
-			<#if table.compositeId>
-			${className}Id id = (${className}Id)copyProperties(${className}Id.class,params);
-			<#else>
-				<#list table.compositeIdColumns as column>
-			${column.javaType} id = new ${column.javaType}((String)params.get("${column.columnNameLower}"));
-				</#list>
-			</#if>
-			
-			${classNameLower}Manager.removeById(id);
+			${classNameFirstLower}Manager.removeById(items[i]);
 		}
 		Flash.current().success(DELETE_SUCCESS);
-		return new ModelAndView(LIST_ACTION);
+		return LIST_ACTION;
 	}
 	
 }
 
-<#macro generateIdParameter>
-	<#if table.compositeId>
-		${className}Id id = new ${className}Id();
-		bind(request, id);
-	<#else>
-		<#list table.compositeIdColumns as column>
-		${column.javaType} id = new ${column.javaType}(request.getParameter("${column.columnNameLower}"));
-		</#list>
-	</#if>
-</#macro>
